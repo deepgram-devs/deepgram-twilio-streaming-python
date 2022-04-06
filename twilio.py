@@ -2,7 +2,6 @@ import asyncio
 import base64
 import json
 import sys
-import time
 import websockets
 import ssl
 from pydub import AudioSegment
@@ -38,17 +37,13 @@ async def twilio_handler(twilio_ws):
 			# for each deepgram result received, forward it on to all
 			# queues subscribed to the twilio callsid
 			async for message in deepgram_ws:
-				for id, clients in subscribers.items():
-					if id == callsid:
-						for client in clients:
-							client.put_nowait(message)
+				for client in subscribers[callsid]:
+					client.put_nowait(message)
 
 			# once the twilio call is over, tell all subscribed clients to close
 			# and remove the subscriber list for this callsid
-			for id, clients in subscribers.items():
-				if id == callsid:
-					for client in clients:
-						client.put_nowait('close')
+			for client in subscribers[callsid]:
+				client.put_nowait('close')
 
 			del subscribers[callsid]
 
@@ -143,15 +138,17 @@ async def client_handler(client_ws):
 	client_queue = asyncio.Queue()
 
 	# first tell the client all active calls
-	await client_ws.send(subscribers.keys())
+	await client_ws.send(json.dumps(list(subscribers.keys())))
 
 	# then recieve from the client which call they would like to subscribe to
 	# and add our client's queue to the subscriber list for that call
 	try:
-		id = await client_ws.recv()
-		id = id.strip()
-		if id in subscribers:
-			subscribers[id].append(client_queue)
+		# you may want to parse a proper json input here
+		# instead of grabbing the entire message as the callsid verbatim
+		callsid = await client_ws.recv()
+		callsid = callsid.strip()
+		if callsid in subscribers:
+			subscribers[callsid].append(client_queue)
 		else:
 			await client_ws.close()
 	except:
@@ -166,7 +163,7 @@ async def client_handler(client_ws):
 				await client_ws.send(message)
 			except:
 				# if there was an error, remove this client queue
-				subscribers[id].remove(client_queue)
+				subscribers[callsid].remove(client_queue)
 				break
 
 	await asyncio.wait([
