@@ -10,7 +10,7 @@ subscribers = {}
 
 def deepgram_connect():
 	extra_headers = {
-		'Authorization': 'Token INSERT_YOUR_API_KEY'
+		'Authorization': 'Token INSERT_YOUR_DEEPGRAM_API_KEY'
 	}
 	deepgram_ws = websockets.connect('wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=2&multichannel=true', extra_headers = extra_headers)
 
