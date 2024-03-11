@@ -4,6 +4,7 @@ import json
 import sys
 import websockets
 import ssl
+import requests
 from pydub import AudioSegment
 
 async def twilio_handler(twilio_ws):
@@ -14,8 +15,9 @@ async def twilio_handler(twilio_ws):
         async for message in twilio_ws:
             try:
                 data = json.loads(message)
+
                 if data['event'] == 'start':
-                    streamsid_queue.put_nowait(data['streamsid'])
+                    streamsid_queue.put_nowait(data['start']['streamSid'])
             except:
                 break
 
@@ -28,13 +30,14 @@ async def twilio_handler(twilio_ws):
         # make a Deepgram Aura TTS request specifying that we want raw mulaw audio as the output
         url = 'https://api.deepgram.com/v1/speak?model=aura-asteria-en&encoding=mulaw&sample_rate=8000&container=none'
         headers = {
-            'Authorization': 'INSERT_YOUR_DEEPGRAM_API_KEY',
+            'Authorization': 'Token INSERT_YOUR_DEEPGRAM_API_KEY',
             'Content-Type': 'application/json'
         }
         payload = {
             'text': 'Hello, how are you today?'
         }
         tts_response = requests.post(url, headers=headers, json=payload)
+
         if tts_response.status_code == 200:
             raw_mulaw = tts_response.content
 
@@ -43,12 +46,12 @@ async def twilio_handler(twilio_ws):
                 'event': 'media',
                 'streamSid': streamsid,
                 'media': {
-                    'payload': base64.b64encode(raw_mulaw)
+                    'payload': base64.b64encode(raw_mulaw).decode('ascii')
                 }
             }
 
             # send the TTS audio to the attached phonecall
-            await twilio_sender.send(media_message)
+            await twilio_ws.send(json.dumps(media_message))
 
     await asyncio.wait([
         asyncio.ensure_future(twilio_receiver(twilio_ws)),
