@@ -45,8 +45,6 @@ python twilio.py
 and then start making calls to the phone number the TwiML Bin is attached to! Without further modifications, you
 should hear Deepgram Aura say simply: "Hello, how are you today?"
 
-See the following for more info: https://www.twilio.com/docs/voice/twiml/stream#websocket-messages---to-twilio
-
 ## Code Tour
 
 Let's dive into the code. First we have some import statements:
