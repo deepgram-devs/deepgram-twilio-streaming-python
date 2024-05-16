@@ -65,7 +65,6 @@ text messages from Twilio and we will use `requests` to make HTTP requests to De
 Next we have:
 ```
 async def twilio_handler(twilio_ws):
-    audio_queue = asyncio.Queue()
     streamsid_queue = asyncio.Queue()
 ```
 we will be spinning up asynchronous tasks for receiving messages from, and sending messages to, Twilio,
